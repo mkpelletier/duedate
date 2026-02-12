@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<XMLDB PATH="mod/quiz/accessrule/duedate/db" VERSION="20250919" COMMENT="XMLDB file for quizaccess_duedate"
+    xmlns="http://moodle.org/xmldb">
+
+    <TABLES>
+        <TABLE NAME="quizaccess_duedate_instances" COMMENT="Stores due date and penalty settings for quizzes">
+            <FIELDS>
+                <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+                <FIELD NAME="quizid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+                <FIELD NAME="duedate" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+                <FIELD NAME="penaltyenabled" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+                <FIELD NAME="penalty" TYPE="number" LENGTH="12" DECIMALS="2" NOTNULL="false" SEQUENCE="false"/>
+                <FIELD NAME="penaltycapenabled" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+                <FIELD NAME="penaltycap" TYPE="number" LENGTH="12" DECIMALS="2" NOTNULL="false" SEQUENCE="false"/>
+            </FIELDS>
+            <KEYS>
+                <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+            </KEYS>
+            <INDEXES>
+                <INDEX NAME="quizid" UNIQUE="true" FIELDS="quizid"/>
+            </INDEXES>
+        </TABLE>
+
+        <TABLE NAME="quizaccess_duedate_penalties" COMMENT="Stores penalties applied to quiz attempts">
+            <FIELDS>
+                <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+                <FIELD NAME="quizid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+                <FIELD NAME="attemptid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+                <FIELD NAME="penaltyapplied" TYPE="number" LENGTH="12" DECIMALS="2" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+                <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+            </FIELDS>
+            <KEYS>
+                <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+            </KEYS>
+            <INDEXES>
+                <INDEX NAME="quizid" UNIQUE="false" FIELDS="quizid"/>
+                <INDEX NAME="attemptid" UNIQUE="true" FIELDS="attemptid"/>
+            </INDEXES>
+        </TABLE>
+    </TABLES>
+  </XMLDB>
