@@ -122,7 +122,7 @@ class observer {
         }
 
         $quizid = $gradeitem->iteminstance;
-        $userid = $event->userid;
+        $userid = $event->relateduserid;
 
         // Load quiz settings and duedate settings.
         $quizobj = \mod_quiz\quiz_settings::create($quizid);
