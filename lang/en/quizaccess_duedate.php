@@ -47,4 +47,33 @@ $string['invalidpenalty'] = 'Penalty must be between 0 and 100.';
 $string['invalidpenaltycap'] = 'Penalty cap must be between 0 and 100.';
 $string['penaltyrequiresduedate'] = 'Penalty cannot be enabled without a due date.';
 $string['penaltycaprequirespenalty'] = 'Penalty cap cannot be enabled without a penalty.';
-$string['privacy:metadata'] = 'The Due date quiz access rule plugin does not store any personal data.';
+// Extension management.
+$string['duedateextensions'] = 'Due date extensions';
+$string['duedateextension'] = 'Due date extension';
+$string['extensionduedate'] = 'Extension due date';
+$string['adduserextension'] = 'Add user extension';
+$string['addgroupextension'] = 'Add group extension';
+$string['editduedateextension'] = 'Edit due date extension';
+$string['deleteextension'] = 'Delete extension';
+$string['userextensions'] = 'User extensions';
+$string['groupextensions'] = 'Group extensions';
+$string['extensiondeleteuserconfirm'] = 'Are you sure you want to delete the due date extension for user {$a}?';
+$string['extensiondeletegroupconfirm'] = 'Are you sure you want to delete the due date extension for group {$a}?';
+$string['extensionalreadyexists'] = 'An extension already exists for this user/group.';
+$string['noextensions'] = 'No due date extensions have been set.';
+$string['manageduedateextensions'] = 'Manage extensions';
+$string['noduedateconfigured'] = 'No due date has been configured for this quiz. Set a due date in the quiz settings first.';
+$string['nogroupsavailable'] = 'No groups available';
+$string['nousersavailable'] = 'No users available';
+$string['unknownuser'] = 'Unknown user';
+$string['unknowngroup'] = 'Unknown group';
+
+// Capabilities.
+$string['duedate:manageoverrides'] = 'Manage due date extensions';
+$string['duedate:viewoverrides'] = 'View due date extensions';
+
+// Privacy.
+$string['privacy:metadata'] = 'The Due date quiz access rule plugin stores per-user due date extension data.';
+$string['privacy:metadata:quizaccess_duedate_overrides'] = 'Stores per-user due date extensions for quizzes.';
+$string['privacy:metadata:quizaccess_duedate_overrides:userid'] = 'The ID of the user the extension applies to.';
+$string['privacy:metadata:quizaccess_duedate_overrides:duedate'] = 'The extended due date for the user.';

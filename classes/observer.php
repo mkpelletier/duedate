@@ -134,6 +134,13 @@ class observer {
             return;
         }
 
+        // Resolve the effective due date for this specific user (may be overridden).
+        $effectiveduedate = \quizaccess_duedate\override_manager::get_effective_duedate($quizid, $userid);
+        if (!$effectiveduedate) {
+            $processing = false;
+            return;
+        }
+
         // Find the first attempt for the user to determine the penalty.
         $firstattempt = $DB->get_record_sql(
             'SELECT * FROM {quiz_attempts} WHERE quiz = ? AND userid = ? AND timefinish > 0 ORDER BY timefinish ASC LIMIT 1',
@@ -147,8 +154,8 @@ class observer {
 
         // Calculate penalty based on the first attempt's submission time.
         $total_penalty = 0;
-        if ($firstattempt->timefinish > $settings->duedate) {
-            $seconds_late = $firstattempt->timefinish - $settings->duedate;
+        if ($firstattempt->timefinish > $effectiveduedate) {
+            $seconds_late = $firstattempt->timefinish - $effectiveduedate;
             $days_late = ceil($seconds_late / 86400);
             $total_penalty = $days_late * $settings->penalty;
             if ($settings->penaltycapenabled && $settings->penaltycap > 0) {
@@ -240,11 +247,13 @@ class observer {
         $eventdata->timeduration = 0;
         $eventdata->visible = 1;
 
-        // Delete any existing due date event for this quiz.
+        // Delete any existing quiz-level due date event (not override events).
         $DB->delete_records('event', [
             'modulename' => 'quiz',
             'instance' => $quizid,
-            'eventtype' => 'due'
+            'eventtype' => 'due',
+            'userid' => 0,
+            'groupid' => 0,
         ]);
 
         \calendar_event::create($eventdata);
@@ -275,11 +284,13 @@ class observer {
         $quizid = $cm->instance;
         $settings = $DB->get_record('quizaccess_duedate_instances', ['quizid' => $quizid]);
 
-        // Delete any existing due date event.
+        // Delete any existing quiz-level due date event (not override events).
         $DB->delete_records('event', [
             'modulename' => 'quiz',
             'instance' => $quizid,
-            'eventtype' => 'due'
+            'eventtype' => 'due',
+            'userid' => 0,
+            'groupid' => 0,
         ]);
 
         if ($settings && $settings->duedate) {

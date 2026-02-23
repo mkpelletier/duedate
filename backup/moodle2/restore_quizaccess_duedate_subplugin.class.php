@@ -46,6 +46,11 @@ class restore_quizaccess_duedate_subplugin extends restore_mod_quiz_access_subpl
         $elepath = $this->get_pathfor('/quizaccess_duedate_instance');
         $paths[] = new restore_path_element($elename, $elepath);
 
+        // Override restore path.
+        $elename = $this->get_namefor('override');
+        $elepath = $this->get_pathfor('/quizaccess_duedate_overrides/quizaccess_duedate_override');
+        $paths[] = new restore_path_element($elename, $elepath);
+
         return $paths;
     }
 
@@ -60,6 +65,45 @@ class restore_quizaccess_duedate_subplugin extends restore_mod_quiz_access_subpl
         $data = (object) $data;
         $data->quizid = $this->get_new_parentid('quiz');
         $DB->insert_record('quizaccess_duedate_instances', $data);
+    }
+
+    /**
+     * Process a restored override record.
+     *
+     * @param array|object $data The data from the backup XML.
+     */
+    public function process_quizaccess_duedate_override($data) {
+        global $DB;
+
+        $data = (object) $data;
+        $data->quizid = $this->get_new_parentid('quiz');
+
+        // Map user and group IDs to restored IDs.
+        if (!empty($data->userid)) {
+            $data->userid = $this->get_mappingid('user', $data->userid);
+            if (!$data->userid) {
+                return; // User not restored, skip.
+            }
+        }
+        if (!empty($data->groupid)) {
+            $data->groupid = $this->get_mappingid('group', $data->groupid);
+            if (!$data->groupid) {
+                return; // Group not restored, skip.
+            }
+        }
+
+        // Prevent duplicates.
+        if (!empty($data->userid)) {
+            $exists = $DB->record_exists('quizaccess_duedate_overrides',
+                ['quizid' => $data->quizid, 'userid' => $data->userid]);
+        } else {
+            $exists = $DB->record_exists('quizaccess_duedate_overrides',
+                ['quizid' => $data->quizid, 'groupid' => $data->groupid]);
+        }
+
+        if (!$exists) {
+            $DB->insert_record('quizaccess_duedate_overrides', $data);
+        }
     }
 
     /**

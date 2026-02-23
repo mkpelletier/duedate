@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Version details for the quizaccess_duedate plugin.
+ * Capability definitions for the quizaccess_duedate plugin.
  *
  * @package    quizaccess_duedate
  * @copyright  2025 xAI
@@ -24,8 +24,22 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->version   = 2026022300; // YYYYMMDDHH (year, month, day, 24-hr time).
-$plugin->requires  = 2024110400; // Moodle 5.0.
-$plugin->component = 'quizaccess_duedate';
-$plugin->maturity  = MATURITY_STABLE;
-$plugin->release   = '1.7';
+$capabilities = [
+    'quizaccess/duedate:manageoverrides' => [
+        'captype' => 'write',
+        'contextlevel' => CONTEXT_MODULE,
+        'archetypes' => [
+            'editingteacher' => CAP_ALLOW,
+            'manager' => CAP_ALLOW,
+        ],
+    ],
+    'quizaccess/duedate:viewoverrides' => [
+        'captype' => 'read',
+        'contextlevel' => CONTEXT_MODULE,
+        'archetypes' => [
+            'teacher' => CAP_ALLOW,
+            'editingteacher' => CAP_ALLOW,
+            'manager' => CAP_ALLOW,
+        ],
+    ],
+];

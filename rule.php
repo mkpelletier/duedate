@@ -48,9 +48,19 @@ class quizaccess_duedate extends \mod_quiz\local\access_rule_base {
      * @return array of HTML fragments.
      */
     public function description() {
+        global $USER;
         $result = [];
-        $duedatestr = userdate($this->quiz->duedate);
-        $result[] = get_string('duedateinfo', 'quizaccess_duedate', $duedatestr);  // Scalar.
+
+        // Resolve effective due date for the current user (may be overridden).
+        $effectiveduedate = \quizaccess_duedate\override_manager::get_effective_duedate(
+            $this->quiz->id, $USER->id
+        );
+        if (!$effectiveduedate) {
+            $effectiveduedate = $this->quiz->duedate;
+        }
+
+        $duedatestr = userdate($effectiveduedate);
+        $result[] = get_string('duedateinfo', 'quizaccess_duedate', $duedatestr);
 
         if (!empty($this->quiz->penaltyenabled)) {
             $penalty = (float)($this->quiz->penalty ?? 0);
@@ -58,6 +68,16 @@ class quizaccess_duedate extends \mod_quiz\local\access_rule_base {
                 ? get_string('latepenaltyinfo_withcap', 'quizaccess_duedate', ['penalty' => $penalty, 'cap' => (float)$this->quiz->penaltycap])
                 : get_string('latepenaltyinfo', 'quizaccess_duedate', ['penalty' => $penalty]);  // Associative for consistency.
             $result[] = $captext;
+        }
+
+        // Show override management link for users with the capability.
+        $context = $this->quizobj->get_context();
+        if (has_any_capability(['quizaccess/duedate:manageoverrides', 'quizaccess/duedate:viewoverrides'], $context)) {
+            $overrideurl = new \moodle_url('/mod/quiz/accessrule/duedate/overrides.php',
+                ['cmid' => $this->quizobj->get_cmid()]);
+            $result[] = \html_writer::link($overrideurl,
+                get_string('manageduedateextensions', 'quizaccess_duedate'),
+                ['class' => 'btn btn-secondary btn-sm mt-1']);
         }
 
         return $result;
@@ -91,6 +111,16 @@ class quizaccess_duedate extends \mod_quiz\local\access_rule_base {
         $mform->setType('penaltycap', PARAM_FLOAT);
         $mform->addHelpButton('penaltycap', 'penaltycap', 'quizaccess_duedate');
         $mform->disabledIf('penaltycap', 'penaltycapenabled', 'notchecked');
+
+        // Add a link to manage due date overrides (only when editing an existing quiz).
+        $current = $quizform->get_current();
+        if (!empty($current->id) && !empty($current->coursemodule)) {
+            $overrideurl = new \moodle_url('/mod/quiz/accessrule/duedate/overrides.php',
+                ['cmid' => $current->coursemodule]);
+            $link = \html_writer::link($overrideurl,
+                get_string('manageduedateextensions', 'quizaccess_duedate'));
+            $mform->addElement('static', 'overridelink', '', $link);
+        }
     }
 
     /**
@@ -146,7 +176,11 @@ class quizaccess_duedate extends \mod_quiz\local\access_rule_base {
             if ($record) {
                 $DB->delete_records('quizaccess_duedate_instances', ['id' => $record->id]);
             }
-            $event = $DB->get_record('event', ['modulename' => 'quiz', 'instance' => $quiz->id, 'eventtype' => 'due']);
+            // Delete the quiz-level calendar event (not override events).
+            $event = $DB->get_record('event', [
+                'modulename' => 'quiz', 'instance' => $quiz->id, 'eventtype' => 'due',
+                'userid' => 0, 'groupid' => 0,
+            ]);
             if ($event) {
                 $calendarevent = \calendar_event::load($event);
                 $calendarevent->delete();
@@ -161,7 +195,11 @@ class quizaccess_duedate extends \mod_quiz\local\access_rule_base {
             $DB->insert_record('quizaccess_duedate_instances', $newrecord);
         }
 
-        $event = $DB->get_record('event', ['modulename' => 'quiz', 'instance' => $quiz->id, 'eventtype' => 'due']);
+        // Manage quiz-level calendar event (not override events).
+        $event = $DB->get_record('event', [
+            'modulename' => 'quiz', 'instance' => $quiz->id, 'eventtype' => 'due',
+            'userid' => 0, 'groupid' => 0,
+        ]);
         if ($newrecord->duedate) {
             $eventdata = [
                 'name' => get_string('duedatefor', 'quizaccess_duedate', $quiz->name),
@@ -200,9 +238,15 @@ class quizaccess_duedate extends \mod_quiz\local\access_rule_base {
 
         $DB->delete_records('quizaccess_duedate_instances', ['quizid' => $quiz->id]);
         $DB->delete_records('quizaccess_duedate_penalties', ['quizid' => $quiz->id]);
+        $DB->delete_records('quizaccess_duedate_overrides', ['quizid' => $quiz->id]);
 
-        $event = $DB->get_record('event', ['modulename' => 'quiz', 'instance' => $quiz->id, 'eventtype' => 'due']);
-        if ($event) {
+        // Delete ALL due events for this quiz (including override events).
+        $events = $DB->get_records('event', [
+            'modulename' => 'quiz',
+            'instance' => $quiz->id,
+            'eventtype' => 'due',
+        ]);
+        foreach ($events as $event) {
             $calendarevent = \calendar_event::load($event);
             $calendarevent->delete();
         }

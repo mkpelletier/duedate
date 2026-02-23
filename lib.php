@@ -52,17 +52,3 @@ function quizaccess_duedate_get_extra_coursemodule_info($cm) {
     return $info;
 }
 
-/**
- * Register the custom renderer for the quiz access rule.
- *
- * @param \mod_quiz\quiz_settings $quizobj The quiz settings object.
- * @param \context_module $context The context module.
- * @return \quiz_access_manager The quiz access manager with custom renderer.
- */
-function quizaccess_duedate_quiz_access_manager(\mod_quiz\quiz_settings $quizobj, \context_module $context) {
-    global $PAGE;
-
-    $accessmanager = new \quiz_access_manager($quizobj, $context, $PAGE->cm->id);
-    $PAGE->set_renderer('mod_quiz', new \quizaccess_duedate\renderer($PAGE->get_renderer('mod_quiz'), $PAGE->target));
-    return $accessmanager;
-}

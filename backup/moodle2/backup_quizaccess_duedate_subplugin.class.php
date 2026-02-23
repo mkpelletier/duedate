@@ -42,14 +42,30 @@ class backup_quizaccess_duedate_subplugin extends backup_mod_quiz_access_subplug
     protected function define_quiz_subplugin_structure() {
         $subplugin = $this->get_subplugin_element();
         $subpluginwrapper = new backup_nested_element($this->get_recommended_name());
+
+        // Quiz-level settings.
         $subpluginsettings = new backup_nested_element('quizaccess_duedate_instance', null,
             ['duedate', 'penaltyenabled', 'penalty', 'penaltycapenabled', 'penaltycap']);
 
+        // Per-user/group override records.
+        $subpluginoverrides = new backup_nested_element('quizaccess_duedate_overrides', null, null);
+        $subpluginoverride = new backup_nested_element('quizaccess_duedate_override', null,
+            ['userid', 'groupid', 'duedate', 'timemodified']);
+
         $subplugin->add_child($subpluginwrapper);
         $subpluginwrapper->add_child($subpluginsettings);
+        $subpluginwrapper->add_child($subpluginoverrides);
+        $subpluginoverrides->add_child($subpluginoverride);
 
         $subpluginsettings->set_source_table('quizaccess_duedate_instances',
             ['quizid' => backup::VAR_ACTIVITYID]);
+
+        $subpluginoverride->set_source_table('quizaccess_duedate_overrides',
+            ['quizid' => backup::VAR_ACTIVITYID]);
+
+        // Annotate user and group IDs for mapping on restore.
+        $subpluginoverride->annotate_ids('user', 'userid');
+        $subpluginoverride->annotate_ids('group', 'groupid');
 
         return $subplugin;
     }

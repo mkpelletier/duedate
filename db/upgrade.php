@@ -108,5 +108,29 @@ function xmldb_quizaccess_duedate_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026020902, 'quizaccess', 'duedate');
     }
 
+    if ($oldversion < 2026021902) {
+        // Create the quizaccess_duedate_overrides table for per-user and per-group due date overrides.
+        $table = new xmldb_table('quizaccess_duedate_overrides');
+
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+        $table->add_field('quizid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('userid', XMLDB_TYPE_INTEGER, '10', null, null, null, null);
+        $table->add_field('groupid', XMLDB_TYPE_INTEGER, '10', null, null, null, null);
+        $table->add_field('duedate', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('timemodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+        $table->add_key('quizid', XMLDB_KEY_FOREIGN, ['quizid'], 'quiz', ['id']);
+
+        $table->add_index('quizid_userid', XMLDB_INDEX_UNIQUE, ['quizid', 'userid']);
+        $table->add_index('quizid_groupid', XMLDB_INDEX_UNIQUE, ['quizid', 'groupid']);
+
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        upgrade_plugin_savepoint(true, 2026021902, 'quizaccess', 'duedate');
+    }
+
     return true;
 }

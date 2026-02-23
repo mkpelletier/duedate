@@ -40,9 +40,18 @@ class renderer extends \mod_quiz_renderer {
     public function view(\mod_quiz\quiz_settings $quizobj, \moodle_url $redirecturl) {
         $output = parent::view($quizobj, $redirecturl);
 
+        global $USER, $DB;
         $quiz = $quizobj->get_quiz();
         $cm = $quizobj->get_cm();
         $duedate = !empty($cm->customdata['duedate']) ? $cm->customdata['duedate'] : 0;
+
+        // Override with user-specific due date if applicable.
+        $effectiveduedate = \quizaccess_duedate\override_manager::get_effective_duedate(
+            $quiz->id, $USER->id
+        );
+        if ($effectiveduedate) {
+            $duedate = $effectiveduedate;
+        }
 
         if ($duedate) {
             $date = userdate($duedate, get_string('strftimedate', 'langconfig'));
