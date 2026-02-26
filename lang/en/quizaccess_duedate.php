@@ -51,6 +51,7 @@ $string['penaltycaprequirespenalty'] = 'Penalty cap cannot be enabled without a 
 $string['duedateextensions'] = 'Due date extensions';
 $string['duedateextension'] = 'Due date extension';
 $string['extensionduedate'] = 'Extension due date';
+$string['originalduedate'] = 'Original due date';
 $string['adduserextension'] = 'Add user extension';
 $string['addgroupextension'] = 'Add group extension';
 $string['editduedateextension'] = 'Edit due date extension';

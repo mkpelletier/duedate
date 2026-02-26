@@ -40,6 +40,20 @@ $observers = [
         'priority'    => 9999,
     ],
     [
+        'eventname'   => '\mod_quiz\event\attempt_regraded',
+        'callback'    => '\quizaccess_duedate\observer::attempt_regraded',
+        'includefile' => '/mod/quiz/accessrule/duedate/classes/observer.php',
+        'internal'    => true,
+        'priority'    => 9999,
+    ],
+    [
+        'eventname'   => '\mod_quiz\event\question_manually_graded',
+        'callback'    => '\quizaccess_duedate\observer::question_manually_graded',
+        'includefile' => '/mod/quiz/accessrule/duedate/classes/observer.php',
+        'internal'    => true,
+        'priority'    => 9999,
+    ],
+    [
         'eventname'   => '\core\event\course_module_created',
         'callback'    => '\quizaccess_duedate\observer::course_module_created',
         'includefile' => '/mod/quiz/accessrule/duedate/classes/observer.php',

@@ -130,13 +130,20 @@ class override_form extends \moodleform {
             }
         }
 
-        // Due date selector.
+        // Show the original quiz due date for reference.
+        $settings = $DB->get_record('quizaccess_duedate_instances', ['quizid' => $this->quiz->id]);
+        if ($settings && $settings->duedate) {
+            $mform->addElement('static', 'originalduedate',
+                get_string('originalduedate', 'quizaccess_duedate'),
+                userdate($settings->duedate));
+        }
+
+        // Extension due date selector.
         $mform->addElement('date_time_selector', 'duedate',
-            get_string('duedate', 'quizaccess_duedate'));
+            get_string('extensionduedate', 'quizaccess_duedate'));
         $mform->addRule('duedate', get_string('required'), 'required');
 
-        // Default to quiz-level duedate.
-        $settings = $DB->get_record('quizaccess_duedate_instances', ['quizid' => $this->quiz->id]);
+        // Default to quiz-level duedate for new extensions.
         if ($settings && !$this->overrideid) {
             $mform->setDefault('duedate', $settings->duedate);
         }

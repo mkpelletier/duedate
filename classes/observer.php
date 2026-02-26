@@ -165,6 +165,12 @@ class observer {
             }
         }
 
+        // If no penalty applies, leave the grade untouched so the gradebook isn't locked.
+        if ($total_penalty == 0) {
+            $processing = false;
+            return;
+        }
+
         // Get the raw grade and compute penalty as a percentage of the max grade.
         $rawgrade = $grade->rawgrade;
         $penaltyamount = ($total_penalty / 100) * $gradeitem->grademax;
@@ -173,37 +179,77 @@ class observer {
         $penalizedgrade = max(0, $rawgrade - $penaltyamount);
 
         // Prepare feedback for the gradebook.
-        $feedback = '';
-        if ($total_penalty > 0) {
-            $feedback = $total_penalty > 0 ? get_string('latepenaltyapplied', 'quizaccess_duedate', $total_penalty) : '';
-        }
+        $feedback = get_string('latepenaltyapplied', 'quizaccess_duedate', $total_penalty);
 
         // Update the gradebook with the penalized grade and feedback.
-        if ($penalizedgrade >= 0) {
-            $gradeitem->update_final_grade(
-                $userid,
-                $penalizedgrade,
-                'quizaccess_duedate',
-                $feedback,
-                FORMAT_HTML
-            );
-        }
-
-        // For First Attempt method with penalty, set as overridden to prevent future updates.
-        if ($quiz->grademethod == QUIZ_ATTEMPTFIRST && $total_penalty > 0) {
-            $updatedgrade = \grade_grade::fetch(['itemid' => $gradeitem->id, 'userid' => $userid]);
-            $updatedgrade->set_overridden(true);
-            $updatedgrade->update('quizaccess_duedate');
-        }
-
-        // Verify the update by checking the grade_grades record.
-        $updatedgrade = $DB->get_record('grade_grades', [
-            'itemid' => $gradeitem->id,
-            'userid' => $userid
-        ]);
+        // update_final_grade() automatically sets the override flag, which protects the
+        // penalized grade from being overwritten by the quiz module's raw grade updates.
+        $gradeitem->update_final_grade(
+            $userid,
+            $penalizedgrade,
+            'quizaccess_duedate',
+            $feedback,
+            FORMAT_HTML
+        );
 
         $processing = false;
     }
+
+    /**
+     * Handle quiz attempt regraded event to recalculate late penalties.
+     *
+     * When a teacher regrades an attempt, the rawgrade changes but the finalgrade
+     * stays locked (overridden). This handler clears the override and retriggers
+     * grade calculation so the penalty is reapplied to the new raw grade.
+     *
+     * @param \mod_quiz\event\attempt_regraded $event The event object.
+     */
+    public static function attempt_regraded(\mod_quiz\event\attempt_regraded $event) {
+        global $DB;
+
+        $quizid = $event->other['quizid'];
+        $userid = $event->relateduserid;
+
+        $settings = $DB->get_record('quizaccess_duedate_instances', ['quizid' => $quizid]);
+        if (!$settings || !$settings->penaltyenabled || !$settings->duedate) {
+            return;
+        }
+
+        // Recalculate: clears override, retriggers quiz grading, which fires user_graded.
+        override_manager::recalculate_grades_for_user($quizid, $userid);
+    }
+
+    /**
+     * Handle question manually graded event to recalculate late penalties.
+     *
+     * When a teacher manually changes a question's mark in the attempt review,
+     * the quiz updates rawgrade but the override prevents finalgrade from changing.
+     * This handler clears the override and retriggers grading so the penalty is
+     * recalculated on the new raw grade.
+     *
+     * @param \mod_quiz\event\question_manually_graded $event The event object.
+     */
+    public static function question_manually_graded(\mod_quiz\event\question_manually_graded $event) {
+        global $DB;
+
+        $quizid = $event->other['quizid'];
+        $attemptid = $event->other['attemptid'];
+
+        $settings = $DB->get_record('quizaccess_duedate_instances', ['quizid' => $quizid]);
+        if (!$settings || !$settings->penaltyenabled || !$settings->duedate) {
+            return;
+        }
+
+        // Get the user from the attempt.
+        $attempt = $DB->get_record('quiz_attempts', ['id' => $attemptid]);
+        if (!$attempt) {
+            return;
+        }
+
+        // Recalculate: clears override, retriggers quiz grading, which fires user_graded.
+        override_manager::recalculate_grades_for_user($quizid, $attempt->userid);
+    }
+
     /**
      * Handle the course module created event to add a due date event.
      *

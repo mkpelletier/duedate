@@ -275,13 +275,17 @@ class override_manager {
             return;
         }
 
-        // Clear any existing override in the gradebook so the quiz module can update the grade.
+        // Clear any existing override and reset finalgrade so the quiz module can update
+        // the grade. We must nullify finalgrade to force a change — otherwise, if the new
+        // rawgrade equals the old finalgrade, user_graded won't fire and the penalty
+        // won't be recalculated.
         $gradegrade = $DB->get_record('grade_grades', [
             'itemid' => $gradeitem->id,
             'userid' => $userid,
         ]);
-        if ($gradegrade && $gradegrade->overridden) {
+        if ($gradegrade) {
             $gradegrade->overridden = 0;
+            $gradegrade->finalgrade = null;
             $DB->update_record('grade_grades', $gradegrade);
         }
 
