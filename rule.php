@@ -48,7 +48,7 @@ class quizaccess_duedate extends \mod_quiz\local\access_rule_base {
      * @return array of HTML fragments.
      */
     public function description() {
-        global $USER;
+        global $USER, $PAGE;
         $result = [];
 
         // Resolve effective due date for the current user (may be overridden).
@@ -59,16 +59,23 @@ class quizaccess_duedate extends \mod_quiz\local\access_rule_base {
             $effectiveduedate = $this->quiz->duedate;
         }
 
-        $duedatestr = userdate($effectiveduedate);
-        $result[] = get_string('duedateinfo', 'quizaccess_duedate', $duedatestr);
-
+        // Build penalty text if applicable.
+        $penaltytext = null;
         if (!empty($this->quiz->penaltyenabled)) {
             $penalty = (float)($this->quiz->penalty ?? 0);
-            $captext = !empty($this->quiz->penaltycapenabled) && !empty($this->quiz->penaltycap)
+            $penaltytext = !empty($this->quiz->penaltycapenabled) && !empty($this->quiz->penaltycap)
                 ? get_string('latepenaltyinfo_withcap', 'quizaccess_duedate', ['penalty' => $penalty, 'cap' => (float)$this->quiz->penaltycap])
-                : get_string('latepenaltyinfo', 'quizaccess_duedate', ['penalty' => $penalty]);  // Associative for consistency.
-            $result[] = $captext;
+                : get_string('latepenaltyinfo', 'quizaccess_duedate', ['penalty' => $penalty]);
         }
+
+        // Inject due date and penalty into the activity-dates region via AMD.
+        $duedatelabel = get_string('activitydate:due', 'quizaccess_duedate');
+        $duedatestring = userdate($effectiveduedate, get_string('strftimedaydatetime', 'langconfig'));
+        $PAGE->requires->js_call_amd('quizaccess_duedate/duedate_display', 'init', [
+            $duedatelabel,
+            $duedatestring,
+            $penaltytext,
+        ]);
 
         // Show override management link for users with the capability.
         $context = $this->quizobj->get_context();

@@ -27,6 +27,7 @@ defined('MOODLE_INTERNAL') || die();
 $string['pluginname'] = 'Due date access rule';
 $string['duedatepenaltysettings'] = 'Late submission penalty settings';
 $string['duedate'] = 'Due date';
+$string['activitydate:due'] = 'Due:';
 $string['isdue'] = 'is due';
 $string['duedate_help'] = 'The soft deadline for the quiz. Submissions after this date will incur a penalty per day late if enabled.';
 $string['quizduedate'] = 'Due date for quiz {$a}';

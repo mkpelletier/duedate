@@ -24,31 +24,5 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-/**
- * Add extra course module information for display on the course page.
- *
- * @param stdClass $cm The course module object.
- * @return cached_cm_info|null The course module info with due date added, or null if not applicable.
- */
-function quizaccess_duedate_get_extra_coursemodule_info($cm) {
-    global $DB;
-
-    if ($cm->modname !== 'quiz') {
-        debugging("get_extra_coursemodule_info: Skipping non-quiz module, cmid: {$cm->id}", DEBUG_DEVELOPER);
-        return null;
-    }
-
-    $info = new cached_cm_info();
-    $settings = $DB->get_record('quizaccess_duedate_instances', ['quizid' => $cm->instance]);
-
-    if ($settings && $settings->duedate > 0) {
-        $info->customdata['duedate'] = $settings->duedate;
-        $info->customdata['duedatetext'] = get_string('duedate', 'quizaccess_duedate') . ': ' .
-            userdate($settings->duedate, get_string('strftimedatetime', 'langconfig'));
-    } else {
-        debugging("get_extra_coursemodule_info: No due date for Quiz ID: {$cm->instance}, cmid: {$cm->id}", DEBUG_DEVELOPER);
-    }
-
-    return $info;
-}
+// This file is intentionally kept minimal. Lib callbacks are defined where needed.
 
