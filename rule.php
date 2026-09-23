@@ -183,56 +183,16 @@ class quizaccess_duedate extends \mod_quiz\local\access_rule_base {
             if ($record) {
                 $DB->delete_records('quizaccess_duedate_instances', ['id' => $record->id]);
             }
-            // Delete the quiz-level calendar event (not override events).
-            $event = $DB->get_record('event', [
-                'modulename' => 'quiz', 'instance' => $quiz->id, 'eventtype' => 'due',
-                'userid' => 0, 'groupid' => 0,
-            ]);
-            if ($event) {
-                $calendarevent = \calendar_event::load($event);
-                $calendarevent->delete();
-            }
-            return;
-        }
-
-        if ($record) {
+        } else if ($record) {
             $newrecord->id = $record->id;
             $DB->update_record('quizaccess_duedate_instances', $newrecord);
         } else {
             $DB->insert_record('quizaccess_duedate_instances', $newrecord);
         }
 
-        // Manage quiz-level calendar event (not override events).
-        $event = $DB->get_record('event', [
-            'modulename' => 'quiz', 'instance' => $quiz->id, 'eventtype' => 'due',
-            'userid' => 0, 'groupid' => 0,
-        ]);
-        if ($newrecord->duedate) {
-            $eventdata = [
-                'name' => get_string('duedatefor', 'quizaccess_duedate', $quiz->name),
-                'description' => '',
-                'format' => FORMAT_HTML,
-                'courseid' => $quiz->course,
-                'groupid' => 0,
-                'userid' => 0,
-                'modulename' => 'quiz',
-                'instance' => $quiz->id,
-                'eventtype' => 'due',
-                'timestart' => $newrecord->duedate,
-                'timeduration' => 0,
-                'visible' => 1,
-                'priority' => null,
-            ];
-            if ($event) {
-                $calendarevent = \calendar_event::load($event);
-                $calendarevent->update($eventdata);
-            } else {
-                \calendar_event::create($eventdata);
-            }
-        } else if ($event) {
-            $calendarevent = \calendar_event::load($event);
-            $calendarevent->delete();
-        }
+        // Core's quiz_update_events() runs straight after this and rewrites these events, so
+        // the course_module_created and course_module_updated observers rebuild them again.
+        \quizaccess_duedate\override_manager::refresh_calendar_events((int) $quiz->id);
     }
 
     /**

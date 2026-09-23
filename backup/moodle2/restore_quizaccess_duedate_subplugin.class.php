@@ -107,6 +107,16 @@ class restore_quizaccess_duedate_subplugin extends restore_mod_quiz_access_subpl
     }
 
     /**
+     * Write the restored quiz's due-date calendar events.
+     *
+     * A backup only carries the course-level calendar events, so a user's extension would
+     * otherwise be missing from their calendar after a restore.
+     */
+    public function after_restore_quiz() {
+        \quizaccess_duedate\override_manager::refresh_calendar_events((int) $this->task->get_activityid());
+    }
+
+    /**
      * Define the restore paths for per-attempt penalty records.
      *
      * @return restore_path_element[]

@@ -24,8 +24,8 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->version   = 2026041301; // YYYYMMDDHH (year, month, day, 24-hr time).
+$plugin->version   = 2026092300; // YYYYMMDDHH (year, month, day, 24-hr time).
 $plugin->requires  = 2024110400; // Moodle 5.0.
 $plugin->component = 'quizaccess_duedate';
 $plugin->maturity  = MATURITY_STABLE;
-$plugin->release   = '1.9';
+$plugin->release   = '2.0.0';

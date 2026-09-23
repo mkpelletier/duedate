@@ -47,11 +47,9 @@ $cancelurl = new moodle_url('/mod/quiz/accessrule/duedate/overrides.php',
 if ($confirm) {
     require_sesskey();
 
-    // Delete associated calendar event first.
-    \quizaccess_duedate\override_manager::delete_calendar_event($override);
-
-    // Delete the override record.
+    // Delete the override record, then rebuild the quiz's calendar events without it.
     \quizaccess_duedate\override_manager::delete_override($override->id);
+    \quizaccess_duedate\override_manager::refresh_calendar_events((int) $override->quizid);
 
     // Recalculate grades — user now falls back to group override or quiz default.
     \quizaccess_duedate\override_manager::recalculate_grades_for_override($override);

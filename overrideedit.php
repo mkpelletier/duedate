@@ -101,8 +101,8 @@ if ($mform->is_cancelled()) {
 
     \quizaccess_duedate\override_manager::save_override($record);
 
-    // Create/update calendar event for this override.
-    \quizaccess_duedate\override_manager::update_calendar_event($record, $quiz->name, $course->id);
+    // Group priorities depend on every group's date, so rebuild the quiz's whole set.
+    \quizaccess_duedate\override_manager::refresh_calendar_events((int) $quiz->id);
 
     // Recalculate grades for affected users so penalties reflect the new due date.
     \quizaccess_duedate\override_manager::recalculate_grades_for_override($record);

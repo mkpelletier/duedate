@@ -251,113 +251,37 @@ class observer {
     }
 
     /**
-     * Handle the course module created event to add a due date event.
+     * Rebuild the due-date calendar events once a new quiz has been saved.
      *
      * @param \core\event\course_module_created $event The event object.
      */
     public static function course_module_created(\core\event\course_module_created $event) {
-        global $DB;
-
-        static $processing = false;
-        if ($processing) {
-            return;
-        }
-        $processing = true;
-
-        $cm = get_coursemodule_from_id('', $event->objectid);
-        if ($cm->modname !== 'quiz') {
-            $processing = false;
-            return;
-        }
-
-        $quizid = $cm->instance;
-        $settings = $DB->get_record('quizaccess_duedate_instances', ['quizid' => $quizid]);
-
-        if (!$settings || !$settings->duedate) {
-            $processing = false;
-            return;
-        }
-
-        // Create a due date event.
-        $eventdata = new \stdClass();
-        $eventdata->name = $cm->name . ' ' . get_string('isdue', 'quizaccess_duedate');
-        $eventdata->description = get_string('quizduedate', 'quizaccess_duedate', $cm->name);
-        $eventdata->format = FORMAT_HTML;
-        $eventdata->courseid = $cm->course;
-        $eventdata->groupid = 0;
-        $eventdata->userid = 0;
-        $eventdata->modulename = 'quiz';
-        $eventdata->instance = $quizid;
-        $eventdata->eventtype = 'due';
-        $eventdata->timestart = $settings->duedate;
-        $eventdata->timeduration = 0;
-        $eventdata->visible = 1;
-
-        // Delete any existing quiz-level due date event (not override events).
-        $DB->delete_records('event', [
-            'modulename' => 'quiz',
-            'instance' => $quizid,
-            'eventtype' => 'due',
-            'userid' => 0,
-            'groupid' => 0,
-        ]);
-
-        \calendar_event::create($eventdata);
-
-        $processing = false;
+        self::refresh_quiz_calendar_events($event);
     }
 
     /**
-     * Handle the course module updated event to update the due date event.
+     * Rebuild the due-date calendar events once a quiz's settings have been saved.
      *
      * @param \core\event\course_module_updated $event The event object.
      */
     public static function course_module_updated(\core\event\course_module_updated $event) {
-        global $DB;
+        self::refresh_quiz_calendar_events($event);
+    }
 
-        static $processing = false;
-        if ($processing) {
+    /**
+     * Rebuild a quiz's due-date calendar events.
+     *
+     * By the time a course module event fires, core's quiz_update_events() has already
+     * rewritten or deleted every calendar event on the quiz, these included, so they are put
+     * back from this plugin's tables.
+     *
+     * @param \core\event\base $event A course_module_created or course_module_updated event.
+     */
+    private static function refresh_quiz_calendar_events(\core\event\base $event): void {
+        if (($event->other['modulename'] ?? '') !== 'quiz') {
             return;
         }
-        $processing = true;
 
-        $cm = get_coursemodule_from_id('', $event->objectid);
-        if ($cm->modname !== 'quiz') {
-            $processing = false;
-            return;
-        }
-
-        $quizid = $cm->instance;
-        $settings = $DB->get_record('quizaccess_duedate_instances', ['quizid' => $quizid]);
-
-        // Delete any existing quiz-level due date event (not override events).
-        $DB->delete_records('event', [
-            'modulename' => 'quiz',
-            'instance' => $quizid,
-            'eventtype' => 'due',
-            'userid' => 0,
-            'groupid' => 0,
-        ]);
-
-        if ($settings && $settings->duedate) {
-            // Create or update the due date event.
-            $eventdata = new \stdClass();
-            $eventdata->name = $cm->name . ' ' . get_string('isdue', 'quizaccess_duedate');
-            $eventdata->description = get_string('quizduedate', 'quizaccess_duedate', $cm->name);
-            $eventdata->format = FORMAT_HTML;
-            $eventdata->courseid = $cm->course;
-            $eventdata->groupid = 0;
-            $eventdata->userid = 0;
-            $eventdata->modulename = 'quiz';
-            $eventdata->instance = $quizid;
-            $eventdata->eventtype = 'due';
-            $eventdata->timestart = $settings->duedate;
-            $eventdata->timeduration = 0;
-            $eventdata->visible = 1;
-
-            \calendar_event::create($eventdata);
-        }
-
-        $processing = false;
+        override_manager::refresh_calendar_events((int) $event->other['instanceid']);
     }
 }

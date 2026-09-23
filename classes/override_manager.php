@@ -195,31 +195,121 @@ class override_manager {
     }
 
     /**
-     * Create or update a calendar event for an override.
+     * Rewrite every due-date calendar event for a quiz from this plugin's tables.
      *
-     * @param \stdClass $override The override record (must include quizid and duedate).
-     * @param string $quizname The quiz name for the event title.
-     * @param int $courseid The course ID.
+     * Events are written the way mod_quiz writes its own overrides, so the calendar shows
+     * each student only the date that applies to them: a student's extension carries
+     * courseid 0 and CALENDAR_EVENT_USER_OVERRIDE_PRIORITY, a group's date carries a
+     * priority that ranks the latest date first, and the class date carries none. Before
+     * v2.0 an extension was written as a course-wide event, so the whole class saw it.
+     *
+     * The full set is rebuilt rather than patched because core's quiz_update_events()
+     * rewrites or deletes every calendar event on a quiz, these included, whenever the quiz
+     * settings or one of core's own overrides are saved.
+     *
+     * @param int $quizid The quiz ID.
      */
-    public static function update_calendar_event(\stdClass $override, string $quizname, int $courseid): void {
-        global $DB;
+    public static function refresh_calendar_events(int $quizid): void {
+        global $CFG, $DB;
+        require_once($CFG->dirroot . '/calendar/lib.php');
 
-        $eventdata = [
-            'name' => get_string('duedatefor', 'quizaccess_duedate', $quizname),
+        $events = $DB->get_records('event', [
+            'modulename' => 'quiz',
+            'instance' => $quizid,
+            'eventtype' => 'due',
+        ]);
+        foreach ($events as $event) {
+            \calendar_event::load($event)->delete();
+        }
+
+        $quiz = $DB->get_record('quiz', ['id' => $quizid], 'id, course, name');
+        $settings = $DB->get_record('quizaccess_duedate_instances', ['quizid' => $quizid]);
+        if (!$quiz || !$settings || !$settings->duedate) {
+            // Without a class due date, get_effective_duedate() ignores overrides too.
+            return;
+        }
+
+        $base = [
+            'name' => get_string('duedatefor', 'quizaccess_duedate', $quiz->name),
             'description' => '',
             'format' => FORMAT_HTML,
-            'courseid' => $courseid,
-            'groupid' => $override->groupid ?? 0,
-            'userid' => $override->userid ?? 0,
+            'courseid' => $quiz->course,
+            'groupid' => 0,
+            'userid' => 0,
             'modulename' => 'quiz',
-            'instance' => $override->quizid,
+            'instance' => $quizid,
             'eventtype' => 'due',
-            'timestart' => $override->duedate,
+            'timestart' => $settings->duedate,
             'timeduration' => 0,
             'visible' => 1,
+            'priority' => null,
         ];
+        \calendar_event::create((object) $base, false);
 
-        // Look for existing event for this specific override.
+        $overrides = self::get_overrides($quizid);
+
+        // Rank group dates latest first, as quiz_get_group_override_priorities() ranks close
+        // dates: the lowest priority wins, and a student in several groups gets the latest.
+        $groupdates = [];
+        foreach ($overrides as $override) {
+            if (!empty($override->groupid)) {
+                $groupdates[] = (int) $override->duedate;
+            }
+        }
+        $groupdates = array_unique($groupdates);
+        rsort($groupdates);
+        $grouppriorities = array_flip($groupdates);
+
+        foreach ($overrides as $override) {
+            $event = $base;
+            $event['timestart'] = $override->duedate;
+
+            if (!empty($override->userid)) {
+                // Core only shows a user event to its owner when courseid is 0.
+                $event['courseid'] = 0;
+                $event['userid'] = $override->userid;
+                $event['priority'] = CALENDAR_EVENT_USER_OVERRIDE_PRIORITY;
+            } else if (!empty($override->groupid)) {
+                if (groups_get_group_name($override->groupid) === false) {
+                    continue;
+                }
+                $event['groupid'] = $override->groupid;
+                $event['priority'] = $grouppriorities[(int) $override->duedate] + 1;
+            } else {
+                continue;
+            }
+
+            \calendar_event::create((object) $event, false);
+        }
+    }
+
+    /**
+     * Rewrite a quiz's due-date calendar events after an override is saved.
+     *
+     * Kept for callers outside this plugin, such as local_unifiedgrader. It rebuilds the
+     * whole quiz, since a group's priority depends on every other group's date.
+     *
+     * @param \stdClass $override The saved override record (must include quizid).
+     * @param string $quizname Unused; the name is read from the quiz.
+     * @param int $courseid Unused; the course is read from the quiz.
+     */
+    public static function update_calendar_event(\stdClass $override, string $quizname, int $courseid): void {
+        self::refresh_calendar_events((int) $override->quizid);
+    }
+
+    /**
+     * Delete the calendar event for an override that is about to be deleted.
+     *
+     * Kept for callers outside this plugin, such as local_unifiedgrader, which call it
+     * before deleting the override record. Only this override's event is removed: a rebuild
+     * at this point would write the override straight back.
+     *
+     * @param \stdClass $override The override record (must include quizid, and userid or groupid).
+     */
+    public static function delete_calendar_event(\stdClass $override): void {
+        global $CFG, $DB;
+        require_once($CFG->dirroot . '/calendar/lib.php');
+
         $params = [
             'modulename' => 'quiz',
             'instance' => $override->quizid,
@@ -227,16 +317,15 @@ class override_manager {
         ];
         if (!empty($override->userid)) {
             $params['userid'] = $override->userid;
-        } else {
+            $params['groupid'] = 0;
+        } else if (!empty($override->groupid)) {
             $params['groupid'] = $override->groupid;
+        } else {
+            return;
         }
 
-        $event = $DB->get_record('event', $params);
-        if ($event) {
-            $calendarevent = \calendar_event::load($event);
-            $calendarevent->update($eventdata, false);
-        } else {
-            \calendar_event::create($eventdata, false);
+        foreach ($DB->get_records('event', $params) as $event) {
+            \calendar_event::load($event)->delete();
         }
     }
 
@@ -311,32 +400,6 @@ class override_manager {
             foreach ($members as $member) {
                 self::recalculate_grades_for_user((int) $override->quizid, (int) $member->id);
             }
-        }
-    }
-
-    /**
-     * Delete a calendar event for an override.
-     *
-     * @param \stdClass $override The override record.
-     */
-    public static function delete_calendar_event(\stdClass $override): void {
-        global $DB;
-
-        $params = [
-            'modulename' => 'quiz',
-            'instance' => $override->quizid,
-            'eventtype' => 'due',
-        ];
-        if (!empty($override->userid)) {
-            $params['userid'] = $override->userid;
-        } else {
-            $params['groupid'] = $override->groupid;
-        }
-
-        $event = $DB->get_record('event', $params);
-        if ($event) {
-            $calendarevent = \calendar_event::load($event);
-            $calendarevent->delete(false, false);
         }
     }
 }

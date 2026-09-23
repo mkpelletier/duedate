@@ -132,5 +132,20 @@ function xmldb_quizaccess_duedate_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026021902, 'quizaccess', 'duedate');
     }
 
+    if ($oldversion < 2026092300) {
+        // Extensions were written as course-wide calendar events, so every student saw them.
+        // Rewrite each quiz's due-date events with the right course, user and priority.
+        $quizids = $DB->get_fieldset_sql(
+            "SELECT quizid FROM {quizaccess_duedate_instances}
+              UNION
+             SELECT quizid FROM {quizaccess_duedate_overrides}"
+        );
+        foreach ($quizids as $quizid) {
+            \quizaccess_duedate\override_manager::refresh_calendar_events((int) $quizid);
+        }
+
+        upgrade_plugin_savepoint(true, 2026092300, 'quizaccess', 'duedate');
+    }
+
     return true;
 }
