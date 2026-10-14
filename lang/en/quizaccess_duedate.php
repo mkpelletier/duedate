@@ -47,6 +47,7 @@ $string['duedatebeforeclose'] = 'Due date must be before close date.';
 $string['invalidpenalty'] = 'Penalty must be between 0 and 100.';
 $string['invalidpenaltycap'] = 'Penalty cap must be between 0 and 100.';
 $string['penaltyrequiresduedate'] = 'Penalty cannot be enabled without a due date.';
+$string['task_migrate_to_core'] = 'Move quiz due dates into core (Moodle 5.3)';
 $string['penaltycaprequirespenalty'] = 'Penalty cap cannot be enabled without a penalty.';
 // Extension management.
 $string['duedateextensions'] = 'Due date extensions';
@@ -69,6 +70,40 @@ $string['nogroupsavailable'] = 'No groups available';
 $string['nousersavailable'] = 'No users available';
 $string['unknownuser'] = 'Unknown user';
 $string['unknowngroup'] = 'Unknown group';
+
+// Migration to core quiz due dates (Moodle 5.3).
+$string['migratepage'] = 'Due date migration';
+$string['migrate_intro'] = 'Moodle 5.3 has quiz due dates in core. This page moves this plugin\'s due dates and extensions into them, keeps late penalties that the site rules would change, and shows when the plugin can be uninstalled. Previews write nothing. Every action can be run again safely.';
+$string['migrate_status'] = 'Status';
+$string['migrate_status_incore'] = 'Core quiz due dates (Moodle 5.3)';
+$string['migrate_status_done'] = 'Due dates moved into core';
+$string['migrate_status_pending'] = 'Still to migrate';
+$string['migrate_status_ugdone'] = 'Unified Grader penalty switches task';
+$string['migrate_status_switches'] = 'Penalty switches still to save';
+$string['migrate_status_ready'] = 'Safe to uninstall';
+$string['migrate_status_noug'] = 'Unified Grader not installed';
+$string['migrate_dates'] = '1. Due dates and extensions';
+$string['migrate_dates_help'] = 'Copies each quiz\'s due date and each student or group extension into core, and switches Unified Grader\'s late penalties on for every quiz this plugin penalised. A value already set in core or Unified Grader is kept and reported as a conflict. Needs Moodle 5.3; on earlier versions the preview is a pre-upgrade inventory.';
+$string['migrate_penalties'] = '2. Late penalties to keep';
+$string['migrate_penalties_help'] = 'For the courses listed, writes quiz-level late penalty rules that keep a quiz\'s old rate and cap wherever the site rules would penalise a submission the quiz still allows differently. Never writes course rules, so assignments and forums are unaffected. List running courses only, not master copies.';
+$string['migrate_courseids'] = 'Course IDs, separated by commas';
+$string['migrate_preview'] = 'Preview';
+$string['migrate_download'] = 'Download preview (CSV)';
+$string['migrate_run'] = 'Migrate due dates';
+$string['migrate_run_confirm'] = 'Copy all legacy quiz due dates and extensions into core now?';
+$string['migrate_writerules'] = 'Write penalty rules';
+$string['migrate_writerules_confirm'] = 'Write quiz-level late penalty rules for the listed courses now?';
+$string['migrate_needs53'] = 'Available after the upgrade to Moodle 5.3.';
+$string['migrate_needcourses'] = 'Enter at least one course ID.';
+$string['migrate_results_preview'] = 'Preview: nothing was written';
+$string['migrate_results_done'] = 'Done';
+$string['migrate_totals'] = '{$a->quizzes} quizzes. Set {$a->set}, same {$a->same}, skip {$a->skip}, conflict {$a->conflict}, warn {$a->warn}.';
+$string['migrate_outcomes'] = 'set = written (or would be); same = already in place; skip = nothing to do; conflict = a different value already exists in core and is kept; warn = done, but a teacher should check the dates.';
+$string['migrate_col_course'] = 'Course';
+$string['migrate_col_quiz'] = 'Quiz';
+$string['migrate_col_outcome'] = 'Outcome';
+$string['migrate_col_details'] = 'Details';
+$string['migrate_showall'] = 'Show unchanged quizzes too';
 
 // Capabilities.
 $string['duedate:manageoverrides'] = 'Manage due date extensions';

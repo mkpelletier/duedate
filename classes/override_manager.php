@@ -211,6 +211,11 @@ class override_manager {
      */
     public static function refresh_calendar_events(int $quizid): void {
         global $CFG, $DB;
+
+        // On 5.3 the quiz's due date events are core's own.
+        if (local\core_migration::core_has_duedate()) {
+            return;
+        }
         require_once($CFG->dirroot . '/calendar/lib.php');
 
         $events = $DB->get_records('event', [
@@ -308,6 +313,11 @@ class override_manager {
      */
     public static function delete_calendar_event(\stdClass $override): void {
         global $CFG, $DB;
+
+        // On 5.3 the quiz's due date events are core's own.
+        if (local\core_migration::core_has_duedate()) {
+            return;
+        }
         require_once($CFG->dirroot . '/calendar/lib.php');
 
         $params = [

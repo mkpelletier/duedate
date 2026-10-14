@@ -31,6 +31,12 @@ require_once($CFG->dirroot . '/lib/gradelib.php');
 require_once($CFG->dirroot . '/mod/quiz/locallib.php');
 require_once($CFG->dirroot . '/calendar/lib.php');
 
+/**
+ * Event observers for quizaccess_duedate.
+ *
+ * None of them act on Moodle 5.3 and later, where core owns quiz due dates and their calendar
+ * events, and local_unifiedgrader owns late penalties.
+ */
 class observer {
 
     /**
@@ -39,6 +45,10 @@ class observer {
      * @param \mod_quiz\event\attempt_submitted $event The event object.
      */
     public static function attempt_submitted(\mod_quiz\event\attempt_submitted $event) {
+        if (local\core_migration::core_has_duedate()) {
+            return;
+        }
+
         global $DB;
 
         static $processing = false;
@@ -104,6 +114,10 @@ class observer {
      * @param \core\event\user_graded $event The event object.
      */
     public static function user_graded(\core\event\user_graded $event) {
+        if (local\core_migration::core_has_duedate()) {
+            return;
+        }
+
         global $DB;
 
         static $processing = false;
@@ -205,6 +219,10 @@ class observer {
      * @param \mod_quiz\event\attempt_regraded $event The event object.
      */
     public static function attempt_regraded(\mod_quiz\event\attempt_regraded $event) {
+        if (local\core_migration::core_has_duedate()) {
+            return;
+        }
+
         global $DB;
 
         $quizid = $event->other['quizid'];
@@ -230,6 +248,10 @@ class observer {
      * @param \mod_quiz\event\question_manually_graded $event The event object.
      */
     public static function question_manually_graded(\mod_quiz\event\question_manually_graded $event) {
+        if (local\core_migration::core_has_duedate()) {
+            return;
+        }
+
         global $DB;
 
         $quizid = $event->other['quizid'];
@@ -256,6 +278,10 @@ class observer {
      * @param \core\event\course_module_created $event The event object.
      */
     public static function course_module_created(\core\event\course_module_created $event) {
+        if (local\core_migration::core_has_duedate()) {
+            return;
+        }
+
         self::refresh_quiz_calendar_events($event);
     }
 
@@ -265,6 +291,10 @@ class observer {
      * @param \core\event\course_module_updated $event The event object.
      */
     public static function course_module_updated(\core\event\course_module_updated $event) {
+        if (local\core_migration::core_has_duedate()) {
+            return;
+        }
+
         self::refresh_quiz_calendar_events($event);
     }
 

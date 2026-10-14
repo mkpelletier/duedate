@@ -110,10 +110,16 @@ class restore_quizaccess_duedate_subplugin extends restore_mod_quiz_access_subpl
      * Write the restored quiz's due-date calendar events.
      *
      * A backup only carries the course-level calendar events, so a user's extension would
-     * otherwise be missing from their calendar after a restore.
+     * otherwise be missing from their calendar after a restore. On Moodle 5.3 and later, a
+     * backup made before the upgrade is moved into core's due dates instead.
      */
     public function after_restore_quiz() {
-        \quizaccess_duedate\override_manager::refresh_calendar_events((int) $this->task->get_activityid());
+        $quizid = (int) $this->task->get_activityid();
+        if (\quizaccess_duedate\local\core_migration::core_has_duedate()) {
+            \quizaccess_duedate\local\core_migration::migrate_quiz($quizid, false);
+            return;
+        }
+        \quizaccess_duedate\override_manager::refresh_calendar_events($quizid);
     }
 
     /**

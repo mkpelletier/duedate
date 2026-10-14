@@ -147,5 +147,21 @@ function xmldb_quizaccess_duedate_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026092300, 'quizaccess', 'duedate');
     }
 
+    if ($oldversion < 2026101400) {
+        // On Moodle 5.3 the quiz has its own due date, so move this plugin's dates into it. On
+        // earlier versions this does nothing; the migrate_to_core task runs it after the site
+        // is upgraded to 5.3, since this step will not run again then.
+        if (\quizaccess_duedate\local\core_migration::core_has_duedate()
+                && $dbman->field_exists('quiz', 'duedate')) {
+            $totals = \quizaccess_duedate\local\core_migration::migrate_all(0, false);
+            set_config(\quizaccess_duedate\local\core_migration::DONE_FLAG, time(), 'quizaccess_duedate');
+            mtrace("Moved quiz due dates into core for {$totals['quizzes']} quizzes: {$totals['set']} written, " .
+                "{$totals['conflict']} conflicts, {$totals['warn']} warnings. " .
+                "Details: php mod/quiz/accessrule/duedate/cli/migrate_to_core.php");
+        }
+
+        upgrade_plugin_savepoint(true, 2026101400, 'quizaccess', 'duedate');
+    }
+
     return true;
 }

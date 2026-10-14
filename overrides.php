@@ -36,6 +36,11 @@ $cm = $quizobj->get_cm();
 $course = $quizobj->get_course();
 $context = $quizobj->get_context();
 
+// On 5.3 extensions are core quiz overrides.
+if (\quizaccess_duedate\local\core_migration::core_has_duedate()) {
+    redirect(new moodle_url('/mod/quiz/overrides.php', ['cmid' => $cm->id, 'mode' => 'user']));
+}
+
 require_login($course, false, $cm);
 
 // Check capabilities.

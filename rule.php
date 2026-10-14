@@ -24,6 +24,15 @@
 
 defined('MOODLE_INTERNAL') || die();
 
+use quizaccess_duedate\local\core_migration;
+
+/**
+ * Due date quiz access rule.
+ *
+ * On Moodle 5.3 and later the quiz has its own due date, in the same 'duedate' form field and
+ * settings column this rule used, so the rule steps aside there: it adds no settings, loads none
+ * and saves none. Its data is moved into core by {@see core_migration}.
+ */
 class quizaccess_duedate extends \mod_quiz\local\access_rule_base {
 
     /**
@@ -35,6 +44,9 @@ class quizaccess_duedate extends \mod_quiz\local\access_rule_base {
      * @return quizaccess_duedate|null
      */
     public static function make(\mod_quiz\quiz_settings $quizobj, $timenow, $canignoretimelimits) {
+        if (core_migration::core_has_duedate()) {
+            return null;
+        }
         $quiz = $quizobj->get_quiz();
         if (empty($quiz->duedate)) {
             return null;
@@ -96,6 +108,9 @@ class quizaccess_duedate extends \mod_quiz\local\access_rule_base {
      * @param \MoodleQuickForm $mform The form object.
      */
     public static function add_settings_form_fields(\mod_quiz_mod_form $quizform, \MoodleQuickForm $mform) {
+        if (core_migration::core_has_duedate()) {
+            return;
+        }
         $duedate = $mform->createElement('date_time_selector', 'duedate', get_string('duedate', 'quizaccess_duedate'),
                 ['optional' => true]);
         $mform->insertElementBefore($duedate, 'timelimit');
@@ -140,6 +155,9 @@ class quizaccess_duedate extends \mod_quiz\local\access_rule_base {
      * @return array Updated errors.
      */
     public static function validate_settings_form_fields(array $errors, array $data, $files, \mod_quiz_mod_form $quizform) {
+        if (core_migration::core_has_duedate()) {
+            return $errors;
+        }
         if (!empty($data['duedate']) && $data['duedate'] < $data['timeopen']) {
             $errors['duedate'] = get_string('duedateafteropen', 'quizaccess_duedate');
         }
@@ -168,6 +186,11 @@ class quizaccess_duedate extends \mod_quiz\local\access_rule_base {
      */
     public static function save_settings($quiz) {
         global $DB;
+
+        // The form's duedate is core's own on 5.3; the legacy row is kept as it was.
+        if (core_migration::core_has_duedate()) {
+            return;
+        }
 
         $record = $DB->get_record('quizaccess_duedate_instances', ['quizid' => $quiz->id]);
         $newrecord = (object) [
@@ -207,6 +230,11 @@ class quizaccess_duedate extends \mod_quiz\local\access_rule_base {
         $DB->delete_records('quizaccess_duedate_penalties', ['quizid' => $quiz->id]);
         $DB->delete_records('quizaccess_duedate_overrides', ['quizid' => $quiz->id]);
 
+        // On 5.3 the due date events are core's own.
+        if (core_migration::core_has_duedate()) {
+            return;
+        }
+
         // Delete ALL due events for this quiz (including override events).
         $events = $DB->get_records('event', [
             'modulename' => 'quiz',
@@ -226,6 +254,10 @@ class quizaccess_duedate extends \mod_quiz\local\access_rule_base {
      * @return array SQL fragments.
      */
     public static function get_settings_sql($quizid) {
+        if (core_migration::core_has_duedate()) {
+            // Selecting duedate.duedate here would hide core's quiz.duedate.
+            return ['', '', []];
+        }
         return [
             'duedate.duedate, duedate.penaltyenabled, duedate.penalty, duedate.penaltycapenabled, duedate.penaltycap',
             'LEFT JOIN {quizaccess_duedate_instances} duedate ON duedate.quizid = quiz.id',

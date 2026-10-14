@@ -27,6 +27,16 @@ namespace quizaccess_duedate;
  */
 final class override_manager_test extends \advanced_testcase {
     /**
+     * These calendar events are core's own on Moodle 5.3, where the plugin writes none.
+     */
+    protected function setUp(): void {
+        parent::setUp();
+        if (local\core_migration::core_has_duedate()) {
+            $this->markTestSkipped('The plugin writes no calendar events on Moodle 5.3.');
+        }
+    }
+
+    /**
      * Create a quiz with a class due date.
      *
      * @param \stdClass $course
